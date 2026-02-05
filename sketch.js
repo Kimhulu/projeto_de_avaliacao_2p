@@ -410,22 +410,24 @@ function mousePressed() {
     if (mouseY > 535 && mouseY < 565 && mouseX < 200) loopAtivo = !loopAtivo;
     if (mouseY > 535 && mouseY < 565 && mouseX > 200) randomAtivo = !randomAtivo;
 
+}
 
-    // Controle de volume
-    if (keyCode === UP_ARROW) { // aumentar volume
-        let vol = som.getVolume(); // pega volume atual
-        vol += 0.1;                // aumenta 10%
-        if (vol > 1) vol = 1;      // limite máximo
+function keyPressed() {
+
+    // Controle do volume
+    if (keyCode === UP_ARROW) { // aumenta o volume
+        let vol = som.getVolume(); // volume atual
+        vol += 0.1;                // aumenta 10% do volume
+        if (vol > 1) vol = 1;      // limite máximo (surdo)
         som.setVolume(vol);
         console.log("Volume:", vol.toFixed(2));
     }
 
-    if (keyCode === DOWN_ARROW) { // diminuir volume
+    if (keyCode === DOWN_ARROW) { // diminui o volume
         let vol = som.getVolume();
-        vol -= 0.1;                // diminui 10%
-        if (vol < 0) vol = 0;      // limite mínimo
+        vol -= 0.1;                // diminui 10% do volume
+        if (vol < 0) vol = 0;      // limite mínimo (mudo)
         som.setVolume(vol);
-        console.log("Volume:", vol.toFixed(2));
     }
 }
 
