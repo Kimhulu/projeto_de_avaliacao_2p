@@ -491,4 +491,4 @@ function trocarMusica(dir) {
 }
 
 // Acabouuu!!!!
-// Deus me livre...474 linhas... 50% é comentário, crtz
+// Deus me livre...494 linhas... 50% é comentário, crtz
