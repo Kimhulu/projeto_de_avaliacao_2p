@@ -1,15 +1,27 @@
+
+
+// ///// CUIDADO! MISTUREI MUITO INGLÊS COM PORTUGUÊS \\\\\
+// Não conte para a prof Suzi, obd S2
+
+
+
 // Tamanho do canvas
 let canvasW = 400;
 let canvasH = 600;
 
-// Área da capa (onde vai ficar a textura auditiva futuramente)
+
+// Capa (textura auditiva)
 let capaX = 50;
 let capaY = 50;
 let capaSize = 300;
 
-// Configurações das bolinhas
+
+// Tamanho dos circulos e quantidade por linha
 let diametro = 26;
-let linhaElls = 0;
+let linhaElls;
+
+
+
 
 // Playlist com as musicas em ordem alfabética (foi mais dificil isso que o código em si)
 let playlist = [
@@ -137,7 +149,12 @@ let artistas = [
 ];
 
 
+// Junta música + artista no mesmo lugar pra não bagunçar... A musica na posição 0 usa o Artista na posição 0...
+
+
+// O => é uma "arrow function" pra substituir o "function" ou "return".   No caso do meu código "Recebo (file, i) => devolvo (file + i)" para juntar a musica e o artista correspondente
 const tracks = playlist.map((file, i) => ({
+
 
     // File = música
     file,
@@ -150,148 +167,288 @@ const tracks = playlist.map((file, i) => ({
 
 
 
+
 const player = {
     // Musica começa pela 0, no caso, Abracadabra!! abra u la la!!
     // Utilizei o "null" para informar ao código que: "existe uma "caixinha" lá, está vazia, mas ela existe"
     musicaAtual: 0,
     som: null,
 
-
-    // Faz com que a música não comece direto (amém por isso...)
     tocando: false,
-
-
-    // O Loop e o Random começam desativados também
-    loopAtivo: false,
-    randomAtivo: false,
-
-
-    // Mapeamento do audio (amo essa palavra "mapeamento") começa "vazio", esperando o sensor de volume do som
-    amp: null,
-
-
-    // Fade in (e volume)
-    // Para o volume ir subindo de vagar do 0 ao 1
-    fade: 0,
-    fading: false,
-    volumeDesejado: 1.0,
 
 
     // Identidade visual por música
     seeds: [], // "Forma" aleatória, mas com uma "identidade", ou seja, sempre que tocar a musica X, vai ter a seeds Y, mas nenhuma musica tem a mesma seeds
-    cores: [],
-    corBase: 0,
+    cores: [], // Cores e Seeds ainda não utilizei no meu codigo
+    corBase: 160,
+
 
     preload() {
-        // Futuramente: carregar a música aqui
-        // this.som = loadSound(...)
+        // Já carregar direto as musicas da playlist
+        this.som = loadSound(`./playlist/${tracks[this.musicaAtual].file}`);
+        // utilizei o `...${}...` pq permite juntar o texto (nome da musica atual) com as váriaveis
     },
 
     setup() {
-        // Futuramente:
-        // - iniciar áudio
-        // - configurar amplitude
-        // - gerar seeds e cores
+        // O audio só começa quando o "User" (pessoa interagindo) "clicar"
+        userStartAudio();
+
+
+        // Mapear a amplitude do som para fazer as Ellipses serem reativas a ele
+        this.amp = new p5.Amplitude();
+
+
+        // Mostra qual som tem que ser "analisado"
+        this.amp.setInput(this.som);
+
+
+
     },
 
+    // Iniciar o audio a partir da interação do usuário
+    comecaMusica() {
+        userStartAudio();
+
+        // Aqui informa para o código que: se a musica existe e se o amp existe, a amp vai "medir" o volume da musica que está no "som" do player
+        if (this.som && this.amp) this.amp.setInput(this.som);
+    },
+
+
+    // Controla a musica se está tocando ou se esta pausada
     musicaPlay() {
-        // Aqui vai entrar o controle de play/pause
-        // Ainda não funcional
+        if (!this.tocando) {
+            // se n está tocando, ela começa a tocar
+            if (this.loopAtivo) this.som.loop();
+            else this.som.play();
+
+            // Atualiza para "tocando"
+            this.tocando = true;
+        } else {
+            // Se já está tocando, ela pausa
+            this.som.pause();
+
+            // "tocando" passa a ser falso já que a musica está pausada
+            this.tocando = false;
+        }
     },
 
+    // Trocar música
+    // Dir para saber a direção, se vai ser -1 ou +1 (anterior e proxima)
     trocarMusica(dir) {
-        // Controle de troca de músicas
-        // Falta implementar lógica
+
+        // Para a música que estava tocando
+        if (this.som) this.som.stop();
+
+        // Atualiza a música atual, parando a anterior e começando a próxima
+        this.musicaAtual += dir;
+
+        // Se passar do fim, volta pro começo
+        if (this.musicaAtual >= tracks.length) this.musicaAtual = 0;
+
+        // Se passar do começo, vai pro fim
+        if (this.musicaAtual < 0) this.musicaAtual = tracks.length - 1;
+
+        // Carrega a música nova se o "tocando" estiver ativo
+        this.som = loadSound(`./playlist/${tracks[this.musicaAtual].file}`, () => {
+            if (this.tocando) {
+                if (this.loopAtivo) this.som.loop();
+                else this.som.play();
+            }
+            this.trocando = false; // Só deixa trocar a musica depois de carregar
+        });
     },
+
 
     nomeMusica() {
-        // Retorna o nome da música atual
         return tracks[this.musicaAtual].file.replace(".mp3", "");
     },
 
     nomeArtista() {
         return tracks[this.musicaAtual].artist;
+    },
+
+    // Pego o volume da música e transformo para um nº de 0 a 100
+    levelMapeado() {
+        let level = this.amp.getLevel();
+        return map(level, 0, 0.3, 0, 100);
     }
 };
 
 
 const desenho = {
-
+    // Minha textura Auditiva turbinada
     desenharTextura() {
-        // Futuramente:
-        // - usar amplitude do som
-        // - desenhar ellipses reativas
-        // Por enquanto só estrutura
+        // As linhas sendo o valor da capa dividida pelo diametro para saber quantas cabem
+        linhaElls = capaSize / diametro;
+
+
+        // Volume do som
+        let level = player.levelMapeado();
+
+
+        // Auto explicativo (cx/cy = centro do quadrado)
+        let cx = capaX + capaSize / 2;
+        let cy = capaY + capaSize / 2;
+
+
+        // Distância máxima até onde as bolinhas podem ir
+        let maxDist = dist(capaX, capaY, cx, cy);
+
+
+
+
+
+        // Loop para as bolinhas
+        for (let i = 0; i < linhaElls; i++) {
+            for (let j = 0; j < capaSize; j += diametro) {
+
+
+                // Posicionamento das ellipses
+                let x = capaX + i * diametro;
+                let y = capaY + j;
+
+
+                // Distância até o centro
+                let d = dist(x, y, cx, cy);
+
+
+                // Influência do centro (centro reage mais)
+                let inf = map(d, 0, maxDist, 1, 0);
+
+
+                // O tamanho das bolinhas variam com o volume da música
+                let size = diametro + level * inf * 0.4;
+
+
+                // Brilho do centro para bordas + música
+                let brilho = map(inf, 0, 1, 30, 85);
+                brilho = constrain(brilho + level * 0.4, 0, 100);
+
+
+                // HSB!!!
+                fill(player.corBase, 100, brilho);
+
+                noStroke();
+
+                // Bolinha 🤏❤️
+                ellipse(x, y, size);
+            }
+        }
+
     },
 
     mostrarInfoMusica() {
-        fill(255);
         textAlign(CENTER);
-        textSize(16);
 
-        text(
-            player.nomeMusica(),
-            width / 2,
-            capaY + capaSize + 40
-        );
-
-        textSize(12);
-        fill(180);
-        text(
-            player.nomeArtista(),
-            width / 2,
-            capaY + capaSize + 60
-        );
-    },
-
-    desenharBarraTempo() {
-        // Barra de progresso da música
-        // Ainda não implementada
-    },
-
-    botoes() {
-        // Desenho dos botões (play, pause, etc)
-        // Ainda sem interação
         fill(255);
-        textSize(32);
+        textSize(18);
+        text(player.nomeMusica(), width / 2, capaY + capaSize + 35);
 
-        text("⏮", 100, 520);
-        text("▶", 200, 520);
-        text("⏭", 300, 520);
+        fill(180);
+        textSize(13);
+        text(player.nomeArtista(), width / 2, capaY + capaSize + 55);
+    },
+
+
+    // Os botões!!! OBS: Não gostei de como as imagens ficaram e estavam me estressando.
+    botoes() {
+        let y = 520;
+
+
+        // Botões maiores
+        textSize(40);
+        fill(255);
+
+
+        // Musica anterior
+        text("⏮", 100, y);
+        // pause e play
+        text(player.tocando ? "⏸" : "▶", 200, y);
+        // proxima musica
+        text("⏭", 300, y);
+
+
+    },
+
+    // Clique nos botões
+    cliqueBotoes() {
+        // play/pause
+        if (mouseY > 485 && mouseY < 535 && mouseX > 170 && mouseX < 230) player.musicaPlay();
+
+
+        // musica anterior
+        if (mouseY > 485 && mouseY < 535 && mouseX > 70 && mouseX < 130) player.trocarMusica(-1);
+
+
+        // proxima musica
+        if (mouseY > 485 && mouseY < 535 && mouseX > 270 && mouseX < 330) player.trocarMusica(1);
+
     }
 };
 
-// ===== FUNÇÕES DO P5 =====
 
 function preload() {
     player.preload();
 }
 
+
 function setup() {
     createCanvas(canvasW, canvasH);
+
+
+    // Modo de cor HSB (HUE/Matriz, Saturation/Saturação, Bright/Brilho)
     colorMode(HSB, 360, 100, 100);
+
 
     player.setup();
 }
 
+
+
 function draw() {
-    background(8);
+    background(0, 0, 18);
 
-    // Área da capa
-    noStroke();
-    fill(0, 0, 20);
-    rect(capaX, capaY, capaSize, capaSize);
+    // Textura dentro da capa
+    push();
 
-    // Textura (ainda vazia)
+    //tipo um canva dentro do canva
+    drawingContext.save(); // Tipo um push, mas para o clip
+    drawingContext.beginPath(); // Fala pro código "ignorar" o que estava antes, começando a densenhar a partir dele 
+    drawingContext.rect(capaX, capaY, capaSize, capaSize); // Textura
+    drawingContext.clip(); // Define que, tudo que for desenhado depois, só fica visivel dentro do retangulo
+
     desenho.desenharTextura();
 
-    // Infos da música
-    desenho.mostrarInfoMusica();
+    drawingContext.restore();
+    pop(); // A partir daqui, tudo o que estava fora antes, não fica limitado só no triangulo para que as próximas coisas não aparecessem no retangulo também
 
-    // Botões
+    // Info e botões
+    desenho.mostrarInfoMusica();
     desenho.botoes();
 }
 
+
 function mousePressed() {
-    // Futuramente: detectar clique nos botões
+    // Chamo a função pra "liberar" o audio e juntar o amp
+    player.comecaMusica();
+
+
+    // Clique nos botões
+    desenho.cliqueBotoes();
+}
+
+
+
+function keyPressed() {
+    // Controle do volume
+    if (keyCode === UP_ARROW) { // aumenta o volume
+        player.mudaVolume(+0.1);
+        console.log("Volume:", player.volumeDesejado.toFixed(2));
+    }
+
+
+    if (keyCode === DOWN_ARROW) { // diminui o volume
+        player.mudaVolume(-0.1);
+        console.log("Volume:", player.volumeDesejado.toFixed(2));
+    }
 }
