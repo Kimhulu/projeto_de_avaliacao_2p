@@ -23,6 +23,7 @@ let linhaElls;
 
 
 
+
 // Playlist com as musicas em ordem alfabética (foi mais dificil isso que o código em si)
 let playlist = [
     "Abracadabra.mp3",
@@ -84,6 +85,7 @@ let playlist = [
     "Wonderwall.mp3",
     "Your Love.mp3"
 ];
+
 
 
 // Nome dos Artistas organizados pela sequencia da playlist S2
@@ -150,6 +152,8 @@ let artistas = [
 
 
 
+
+
 // Junta música + artista no mesmo lugar pra não bagunçar... A musica na posição 0 usa o Artista na posição 0...
 
 
@@ -175,13 +179,38 @@ const player = {
     musicaAtual: 0,
     som: null,
 
+
+    // Faz com que a música não comece direto (amém por isso...)
     tocando: false,
+
+
+    // O Loop e o Random começam desativados também
+    loopAtivo: false,
+    randomAtivo: false,
+
+
+    // Mapeamento do audio (amo essa palavra "mapeamento") começa "vazio", esperando o sensor de volume do som
+    amp: null,
+
+
+    // Fade in (e volume)
+    // Para o volume ir subindo de vagar do 0 ao 1
+    fade: 0,
+    fading: false,
+    volumeDesejado: 1.0,
 
 
     // Identidade visual por música
     seeds: [], // "Forma" aleatória, mas com uma "identidade", ou seja, sempre que tocar a musica X, vai ter a seeds Y, mas nenhuma musica tem a mesma seeds
-    cores: [], // Cores e Seeds ainda não utilizei no meu codigo
-    corBase: 160,
+    cores: [],
+    corBase: 0,
+
+    // trava clique durante as trocas de musicas
+    trocando: false,
+
+
+    // "senha" pra invalidar loads antigos
+    trocaId: 0,
 
 
     preload() {
@@ -202,9 +231,19 @@ const player = {
         // Mostra qual som tem que ser "analisado"
         this.amp.setInput(this.som);
 
+        // Cria identidade visual única por música
+        for (let i = 0; i < tracks.length; i++) {
+            this.seeds.push(floor(random(100000)));
+            this.cores.push(random(0, 360));
+        }
 
 
+        // Aleatoriza a seed e a cor da musica que está tocando
+        randomSeed(this.seeds[this.musicaAtual]);
+        this.corBase = this.cores[this.musicaAtual];
     },
+
+
 
     // Iniciar o audio a partir da interação do usuário
     comecaMusica() {
@@ -222,6 +261,12 @@ const player = {
             if (this.loopAtivo) this.som.loop();
             else this.som.play();
 
+            // Começa com 0 pra ter o fade in
+            this.som.setVolume(0);
+
+            this.fade = 0;
+            this.fading = true;
+
             // Atualiza para "tocando"
             this.tocando = true;
         } else {
@@ -233,30 +278,119 @@ const player = {
         }
     },
 
+
+    // Fade in (volume sobe até volumeDesejado)
+    updateFade() {
+        if (!this.fading) return;
+
+
+        this.fade += 0.05;
+        if (this.fade >= this.volumeDesejado) {
+            this.fade = this.volumeDesejado;
+            this.fading = false;
+        }
+        this.som.setVolume(this.fade);
+    },
+
+
+    // Controle do volume (setas)
+    mudaVolume(delta) {
+        this.volumeDesejado += delta;
+        if (this.volumeDesejado > 1) this.volumeDesejado = 1;
+        if (this.volumeDesejado < 0) this.volumeDesejado = 0;
+
+
+        // Se já estiver tocando e não estiver em fade, aplica direto
+        if (this.som && this.tocando && !this.fading) {
+            this.som.setVolume(this.volumeDesejado);
+        }
+    },
+
+
     // Trocar música
     // Dir para saber a direção, se vai ser -1 ou +1 (anterior e proxima)
     trocarMusica(dir) {
+
+        // evita travar se clicar igual doido
+        if (this.trocando) return;
+        this.trocando = true;
+
+
+        // invalida loads antigos (anti-bug)
+        this.trocaId++;
+        const minhaTroca = this.trocaId;
 
         // Para a música que estava tocando
         if (this.som) this.som.stop();
 
         // Atualiza a música atual, parando a anterior e começando a próxima
-        this.musicaAtual += dir;
+        this.musicaAtual += dir;// Se o random está ativo ele escolhe uma musica aleatoria
+        if (this.randomAtivo) {
+            // Usa Math.random() para evitar conflito com randomSeed()
+            let novo = this.musicaAtual;
 
-        // Se passar do fim, volta pro começo
-        if (this.musicaAtual >= tracks.length) this.musicaAtual = 0;
 
-        // Se passar do começo, vai pro fim
-        if (this.musicaAtual < 0) this.musicaAtual = tracks.length - 1;
+            // evita repetir a mesma música (se der)
+            if (tracks.length > 1) {
+                while (novo === this.musicaAtual) {
+                    novo = Math.floor(Math.random() * tracks.length);
+                }
+            } else {
+                novo = 0;
+            }
 
-        // Carrega a música nova se o "tocando" estiver ativo
+
+            this.musicaAtual = novo;
+        } else {
+            // Se n estiver, vai para a proxima ou a anterior do Array
+            this.musicaAtual += dir;
+
+
+            // Se passar do fim, volta pro começo
+            if (this.musicaAtual >= tracks.length) this.musicaAtual = 0;
+
+
+            // Se passar do começo, vai pro fim
+            if (this.musicaAtual < 0) this.musicaAtual = tracks.length - 1;
+        }
+
+
+        // Carrega a nova musica e o callback roda quando ela termina de carregar
         this.som = loadSound(`./playlist/${tracks[this.musicaAtual].file}`, () => {
+            // se essa não for a troca mais recente, ignora (anti-bug)
+            if (minhaTroca !== this.trocaId) return;
+
+
+            // muda a seed e a cor pra outra, já que mudou de musica
+            randomSeed(this.seeds[this.musicaAtual]);
+            this.corBase = this.cores[this.musicaAtual];
+
+
+            // Mostra qual som tem que ser analisado
+            if (this.amp) this.amp.setInput(this.som);
+
+
+            // Se já estava tocando musica antes, a nova musica continua tocando
             if (this.tocando) {
                 if (this.loopAtivo) this.som.loop();
                 else this.som.play();
+
+
+                // Fade in dnv
+                this.som.setVolume(0);
+                this.fade = 0;
+                this.fading = true;
             }
-            this.trocando = false; // Só deixa trocar a musica depois de carregar
+
+
+            this.trocando = false;
         });
+
+
+        // fallback: se der ruim no load, destrava depois de um tempo
+        setTimeout(() => {
+            if (minhaTroca === this.trocaId) this.trocando = false;
+        }, 1500);
     },
 
 
@@ -264,9 +398,18 @@ const player = {
         return tracks[this.musicaAtual].file.replace(".mp3", "");
     },
 
+
     nomeArtista() {
         return tracks[this.musicaAtual].artist;
     },
+
+
+    // Progresso da música (0 a 1)
+    progresso() {
+        if (!this.som || !this.som.isLoaded()) return 0;
+        return this.som.currentTime() / this.som.duration();
+    },
+
 
     // Pego o volume da música e transformo para um nº de 0 a 100
     levelMapeado() {
@@ -274,6 +417,9 @@ const player = {
         return map(level, 0, 0.3, 0, 100);
     }
 };
+
+
+
 
 
 const desenho = {
@@ -296,7 +442,8 @@ const desenho = {
         let maxDist = dist(capaX, capaY, cx, cy);
 
 
-
+        // A textura não muda durante a música
+        randomSeed(player.seeds[player.musicaAtual]);
 
 
         // Loop para as bolinhas
@@ -338,6 +485,7 @@ const desenho = {
 
     },
 
+    // Function para mostrar as infos da música (Nome e o/os Artistas)
     mostrarInfoMusica() {
         textAlign(CENTER);
 
@@ -348,6 +496,34 @@ const desenho = {
         fill(60);
         textSize(13);
         text(player.nomeArtista(), width / 2, capaY + capaSize + 55);
+    },
+
+
+    // A barrinha que aparece em baixo dos nomes para mostrar aonde a música anda
+    desenharBarraTempo() {
+        // Se, por algum acaso do destino ou internet, a música não carregou, a barrinha não aparece
+        if (!player.som || !player.som.isLoaded()) return;
+
+
+        // Progresso (0..1)
+        let progresso = player.progresso();
+
+
+        // Tamanho e posição da barra
+        let barraW = 260;
+        let x = 70;
+        let y = capaY + capaSize + 75;
+
+
+        // A parte q já tocou fica com a cor igual a da Textura Auditiva
+        noStroke();
+        fill(player.corBase, 80, 40);
+        rect(x, y, barraW * progresso, 4, 2);
+
+
+        // A parte q n tocou fica cinza mesmo
+        fill(0, 0, 30);
+        rect(x + barraW * progresso, y, barraW * (1 - progresso), 4, 2);
     },
 
 
@@ -369,7 +545,20 @@ const desenho = {
         text("⏭", 300, y);
 
 
+        // Botões pequenos
+        textSize(20);
+
+
+        // loop se estiver ativo fica com a cor igual a da capa e se estiver desativado fica branco
+        fill(player.loopAtivo ? color(player.corBase, 80, 40) : 150);
+        text("⟲", 120, y + 40);
+
+
+        // Random se estiver ativo fica com a cor igual a da capa e se estiver desativado fica branco
+        fill(player.randomAtivo ? color(player.corBase, 80, 40) : 150);
+        text("⇆", 280, y + 40);
     },
+
 
     // Clique nos botões
     cliqueBotoes() {
@@ -384,13 +573,23 @@ const desenho = {
         // proxima musica
         if (mouseY > 485 && mouseY < 535 && mouseX > 270 && mouseX < 330) player.trocarMusica(1);
 
+
+        // loop e random ;)
+        if (mouseY > 535 && mouseY < 565 && mouseX < 200) player.loopAtivo = !player.loopAtivo;
+        if (mouseY > 535 && mouseY < 565 && mouseX > 200) player.randomAtivo = !player.randomAtivo;
     }
 };
+
+
+
 
 
 function preload() {
     player.preload();
 }
+
+
+
 
 
 function setup() {
@@ -406,8 +605,24 @@ function setup() {
 
 
 
+
+
 function draw() {
     background(0, 0, 18);
+
+    // Mouse influencia textura na cor e no diametro das ellipses
+    let mouseCor = map(mouseX, 0, width, -20, 20);
+    let mouseDiam = map(mouseY, 0, height, -6, 6);
+
+
+    diametro = 26 + mouseDiam;
+    player.corBase = player.cores[player.musicaAtual] + mouseCor;
+
+
+    // Parte que fica atrás das Ellipses, um cinza mais claro
+    noStroke();
+    fill(0, 0, 18);
+    rect(capaX, capaY, capaSize, capaSize);
 
     // Textura dentro da capa
     push();
@@ -425,8 +640,15 @@ function draw() {
 
     // Info e botões
     desenho.mostrarInfoMusica();
+    desenho.desenharBarraTempo();
     desenho.botoes();
+
+    // Fade in
+    player.updateFade();
 }
+
+
+
 
 
 function mousePressed() {
@@ -437,6 +659,8 @@ function mousePressed() {
     // Clique nos botões
     desenho.cliqueBotoes();
 }
+
+
 
 
 
@@ -453,3 +677,7 @@ function keyPressed() {
         console.log("Volume:", player.volumeDesejado.toFixed(2));
     }
 }
+
+
+// Acabouuu!!!!
+// Deus me livre... 683 linhas, 50% é comentário e espaçamento das linhas, crtz
