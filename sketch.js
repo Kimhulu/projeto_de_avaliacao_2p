@@ -39,7 +39,7 @@ let playlist = [
     "Easy.mp3",
     "Ela só Pensa em Beijar.mp3",
     "Everlong.mp3",
-    "Foo Fighters.mp3",
+    "fire.mp3",
     "Girlfriend.mp3",
     "God Games.mp3",
     "Golden.mp3",
@@ -102,7 +102,7 @@ let artistas = [
     "Hazbin Hotel",
     "MC Leozinho",
     "Foo Fighters",
-    "Foo Fighters",
+    "...",
     "Avril Lavigne",
     "EPIC: The Musical",
     "Kpop Demon Hunters",
@@ -147,6 +147,7 @@ let artistas = [
     "Oasis",
     "The Outfield"
 ];
+
 
 
 // Junta música + artista no mesmo lugar pra não bagunçar... A musica na posição 0 usa o Artista na posição 0...
@@ -344,7 +345,7 @@ const desenho = {
         textSize(18);
         text(player.nomeMusica(), width / 2, capaY + capaSize + 35);
 
-        fill(180);
+        fill(60);
         textSize(13);
         text(player.nomeArtista(), width / 2, capaY + capaSize + 55);
     },
