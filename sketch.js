@@ -147,12 +147,17 @@ let artistas = [
     "The Outfield"
 ];
 
-// Junta música + artista num só lugar pra não desalinhar
+// Junta música + artista no mesmo lugar pra não bagunçar... A musica na posição 0 usa o Artista na posição 0...
+
+// O => é uma "arrow function" pra substituir o "function" ou "return".   No caso do meu código "Recebo (file, i) => devolvo (file + i)"
 const tracks = playlist.map((file, i) => ({
-    file: file,
+
+    // File = música
+    file,
+    // Se a musica não tiver artista "artistas[i]" (raro mas pode acontecer) ele subistitui por uma string vazia "", evitando que o "undefined" apareça na tela... o "[i]" representa a posição do artista na fila
     artist: artistas[i] || ""
 }));
-
+// Const para ser algo constante (básico ne...Const ser Constante) que não se altera....Class cria um modelo para ser recriado de forma mais fácil, e eu não quero vários players, só o meu mesmo. Por isso escolhi a "const" para ter uma lista pronta.
 
 
 
