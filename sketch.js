@@ -193,8 +193,8 @@ const player = {
     amp: null,
 
 
-    // Fade in (e volume)
-    // Para o volume ir subindo de vagar do 0 ao 1
+    // Fade in para o volume ir subindo gradualmente do 0 ao 1
+    // Fading começa falso já que n tem nenhuma musica tocando ainda
     fade: 0,
     fading: false,
     volumeDesejado: 1.0,
@@ -264,6 +264,7 @@ const player = {
             // Começa com 0 pra ter o fade in
             this.som.setVolume(0);
 
+            // A musica já começou a tocar, mas para ficar melhor, o fade começa em 0 e vai subindo até 1
             this.fade = 0;
             this.fading = true;
 
@@ -279,29 +280,40 @@ const player = {
     },
 
 
-    // Fade in (volume sobe até volumeDesejado)
+    // Fade in (volume sobe até volumeDesejado) responsável pelo fade de volume
     updateFade() {
+
+        // Se o fadeing for falso, a função para e não exacuta mais nada
         if (!this.fading) return;
 
-
+        // O volume do fade sóbe 0.05 a cada frame
         this.fade += 0.05;
+
+        // Verifica se o fade já chegou no volume desejado
         if (this.fade >= this.volumeDesejado) {
+            // Trava o volume no valor final (1.0) e evita passar do limete por conta da soma (+= 0.05)
             this.fade = this.volumeDesejado;
+            // A partir daqui, o fade para de subir e o updateFate não faz mais nada, apenas deixa o som estável
             this.fading = false;
         }
+        // Aplica o valor cauculado em fade no som que escutamos
         this.som.setVolume(this.fade);
     },
 
 
     // Controle do volume (setas)
+
+    // Utilizei o "delta" para ajustar quanto o volume vai aumentar ou diminuir naquele momento
     mudaVolume(delta) {
+        // Aqui, soma o volume desejado (0.5) + o delta (+/- 0.1)
         this.volumeDesejado += delta;
         if (this.volumeDesejado > 1) this.volumeDesejado = 1;
         if (this.volumeDesejado < 0) this.volumeDesejado = 0;
 
 
-        // Se já estiver tocando e não estiver em fade, aplica direto
+        // Se o som, tocando estiverem ativos e o fading "false" for verdadeiro 
         if (this.som && this.tocando && !this.fading) {
+            // Vira o volume real, não só desejado
             this.som.setVolume(this.volumeDesejado);
         }
     },
@@ -316,7 +328,7 @@ const player = {
         this.trocando = true;
 
 
-        // invalida loads antigos (anti-bug)
+        // invalida loads antigos e da um ID quando muda de musica (trocarID = 3, mudei de musica, então trocarID = 4) evitando que toque outra musica caso clique várias vezes, ignorando a musica anterior, já que não é o mesmo ID
         this.trocaId++;
         const minhaTroca = this.trocaId;
 
@@ -357,7 +369,8 @@ const player = {
 
         // Carrega a nova musica e o callback roda quando ela termina de carregar
         this.som = loadSound(`./playlist/${tracks[this.musicaAtual].file}`, () => {
-            // se essa não for a troca mais recente, ignora (anti-bug)
+
+            // Essas linhas criam um identificador único para cada troca de música, garantindo que apenas a última música solicitada seja carregada e reproduzida, evitando conflitos de carregamento assíncrono.
             if (minhaTroca !== this.trocaId) return;
 
 
