@@ -163,7 +163,7 @@ const tracks = playlist.map((file, i) => ({
 
     // File = música
     file,
-    // Se a musica não tiver artista "artistas[i]" (raro mas pode acontecer) ele subistitui por uma string vazia "", evitando que o "undefined" apareça na tela... o "[i]" representa a posição do artista na fila
+    // Se a musica não tiver artista "artistas[i]" (raro pq revisei isso algumas milhares de vezes, mas pode acontecer) ele subistitui por uma string vazia "", evitando que o "undefined" apareça na tela... o "[i]" representa a posição do artista na fila
     artist: artistas[i] || ""
 }));
 // Const para ser algo constante (básico ne...Const ser Constante) que não se altera....Class cria um modelo para ser recriado de forma mais fácil, e eu não quero vários players, só o meu mesmo. Por isso escolhi a "const" para ter uma lista pronta.
@@ -562,7 +562,7 @@ const desenho = {
         textSize(20);
 
 
-        // loop se estiver ativo fica com a cor igual a da capa e se estiver desativado fica branco
+        // loop se estiver ativo fica com a cor igual a da capa e se estiver desativado fica branco. O ? substitui o "if e else if"
         fill(player.loopAtivo ? color(player.corBase, 80, 40) : 150);
         text("⟲", 120, y + 40);
 
@@ -693,4 +693,4 @@ function keyPressed() {
 
 
 // Acabouuu!!!!
-// Deus me livre... 683 linhas, 50% é comentário e espaçamento das linhas, crtz
+// Deus me livre... 696 linhas, 50% é comentário e espaçamento das linhas, crtz
