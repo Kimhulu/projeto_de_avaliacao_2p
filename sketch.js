@@ -166,7 +166,7 @@ const tracks = playlist.map((file, i) => ({
     // Se a musica não tiver artista "artistas[i]" (raro pq revisei isso algumas milhares de vezes, mas pode acontecer) ele subistitui por uma string vazia "", evitando que o "undefined" apareça na tela... o "[i]" representa a posição do artista na fila
     artist: artistas[i] || ""
 }));
-// Const para ser algo constante (básico ne...Const ser Constante) que não se altera....Class cria um modelo para ser recriado de forma mais fácil, e eu não quero vários players, só o meu mesmo. Por isso escolhi a "const" para ter uma lista pronta.
+// Const para ser algo constante (básico ne...Const ser Constante) que não se altera....Class cria um modelo para ser recriado de forma mais fácil, e eu não quero vários players, só o meu mesmo. Por isso escolhi a "const" para ter uma lista pronta... Também como só existe um player no sistema, não há necessidade de instanciar múltiplos objetos. Um objeto literal resolve o problema de forma mais simples e evita complexidade desnecessária.
 // Coloquei os {} dentro de () para informar ao código que isso é um objeto e não um bloco
 
 
